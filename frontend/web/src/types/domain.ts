@@ -7,11 +7,10 @@
  */
 
 // --------------------------------------------------------------------------- //
-// §6.1 Role — USER and EMPLOYEE are deleted by the spec
+// §6.1 Role — only EMPLOYEE remains
 // --------------------------------------------------------------------------- //
 export const ROLE = {
-  COMPLIANCE_OFFICER: 'COMPLIANCE_OFFICER',
-  SYSTEM_ADMIN: 'SYSTEM_ADMIN',
+  EMPLOYEE: 'EMPLOYEE',
 } as const
 export type Role = (typeof ROLE)[keyof typeof ROLE]
 
