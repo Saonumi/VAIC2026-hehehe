@@ -46,7 +46,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
         ) : (
           <div className="page">
             <div className="banner banner--error" role="alert">
-              <strong>Không đủ quyền.</strong> Các màn hình nghiệp vụ yêu cầu vai trò COMPLIANCE_OFFICER. Vai trò hiện
+              <strong>Không đủ quyền.</strong> Các màn hình nghiệp vụ yêu cầu vai trò EMPLOYEE. Vai trò hiện
               tại: {session.role}.
             </div>
           </div>

@@ -7,11 +7,11 @@ import { api } from '@/lib/api'
 import { writeSession } from '@/lib/session'
 import { ERROR_CODE, ROLE } from '@/types/domain'
 
-/** POST /auth/login (§9). Only COMPLIANCE_OFFICER / SYSTEM_ADMIN exist (§6.1). */
+/** POST /auth/login — only EMPLOYEE role is supported. */
 export default function LoginPage() {
   const router = useRouter()
-  const [username, setUsername] = useState('officer')
-  const [password, setPassword] = useState('officer123')
+  const [username, setUsername] = useState('employee')
+  const [password, setPassword] = useState('employee123')
   const [error, setError] = useState<{ code?: string; message?: string }>()
   const [busy, setBusy] = useState(false)
 
@@ -27,14 +27,11 @@ export default function LoginPage() {
       return
     }
 
-    // §6.1 deleted USER and EMPLOYEE. A backend still issuing one of them would
-    // otherwise be silently rejected by readSession() and bounce the officer
-    // back here forever, so the mismatch is named explicitly.
     const role = res.data.role
-    if (role !== ROLE.COMPLIANCE_OFFICER && role !== ROLE.SYSTEM_ADMIN) {
+    if (role !== ROLE.EMPLOYEE) {
       setError({
         code: ERROR_CODE.ROLE_NOT_SUPPORTED,
-        message: `Backend trả role "${role}", nhưng spec §6.1 chỉ còn COMPLIANCE_OFFICER và SYSTEM_ADMIN. Cần cập nhật enum Role ở backend trước khi đăng nhập được.`,
+        message: `Backend trả role "${role}", nhưng hệ thống chỉ hỗ trợ EMPLOYEE.`,
       })
       return
     }
@@ -46,7 +43,7 @@ export default function LoginPage() {
   return (
     <main className="login" data-testid="login">
       <h1 className="page__title">Đăng nhập</h1>
-      <p className="page__subtitle">Compliance Officer</p>
+      <p className="page__subtitle">Chuyên viên tuân thủ</p>
 
       <form onSubmit={submit} className="form">
         <label className="form__field">
@@ -74,3 +71,4 @@ export default function LoginPage() {
     </main>
   )
 }
+

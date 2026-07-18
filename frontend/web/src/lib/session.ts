@@ -1,9 +1,7 @@
 /**
  * Session state.
  *
- * §6.1 deletes USER and EMPLOYEE: the only product persona is COMPLIANCE_OFFICER,
- * with SYSTEM_ADMIN as a technical role. Nothing in this UI may branch on any
- * other role value.
+ * Only EMPLOYEE role is supported.
  */
 import { setToken } from '@/lib/apiClient'
 import { ROLE, type Role } from '@/types/domain'
@@ -23,8 +21,8 @@ export function parseSession(raw: string | null): Session | null {
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw) as Session
-    // reject anything carrying a retired role rather than rendering a ghost persona
-    if (parsed.role !== ROLE.COMPLIANCE_OFFICER && parsed.role !== ROLE.SYSTEM_ADMIN) return null
+    // reject anything carrying an unsupported role
+    if (parsed.role !== ROLE.EMPLOYEE) return null
     return parsed
   } catch {
     return null
@@ -54,7 +52,8 @@ export function clearSession(): void {
   notifyChanged()
 }
 
-/** All business routes require COMPLIANCE_OFFICER (§7.1). */
+/** All business routes require EMPLOYEE role. */
 export function canUseBusinessRoutes(session: Session | null): boolean {
-  return session?.role === ROLE.COMPLIANCE_OFFICER
+  return session?.role === ROLE.EMPLOYEE
 }
+
