@@ -211,10 +211,8 @@ def handle_upload(file_bytes: bytes, filename: str, doc_type: str, uploaded_by: 
         md_dump = metadata.model_dump(mode="json")
         row.doc_metadata = md_dump
 
-        # Step 5-8: LLM extract provisions (primary); parse_structure fallback nếu LLM chưa cấu hình.
+        # Step 5-8: LLM extract provisions. LLM phải được cấu hình API key.
         provisions = legal_extract.llm_extract_provisions(full_text)
-        if not provisions:
-            provisions = parse_structure(blocks)
         provision_count = _persist_provisions(session, row, provisions)
 
         # Step 9-10: amendment detection -> change events + review tasks.
