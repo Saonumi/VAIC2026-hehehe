@@ -30,6 +30,37 @@ _FOLLOWUP_HINTS = (
 )
 _ATTACHMENT_HINTS = ("đính kèm", "tệp", "file", "tài liệu tôi gửi", "tài liệu này", "tài liệu", "nội dung này", "văn bản này")
 
+_CHITCHAT_TRIGGERS = (
+    "hello", "hi ", "hi!", "xin chào", "chào bạn", "chào aide", "hey",
+    "bạn là ai", "tên bạn", "aide là gì", "aide là ai", "bạn tên gì",
+    "bạn làm được gì", "bạn có thể làm gì", "giới thiệu", "mày là ai",
+    "cảm ơn", "thank", "tạm biệt", "bye", "ok bạn", "được rồi", "tốt lắm",
+    "bạn có khỏe", "hôm nay thế nào",
+)
+_LEGAL_SIGNALS = (
+    "quy định", "điều ", "khoản ", "thông tư", "nghị định", "quyết định",
+    "luật ", "lãi suất", "tín dụng", "vốn", "tỷ lệ", "hạn mức", "phí",
+    "hiệu lực", "sửa đổi", "bổ sung", "áp dụng", "tuân thủ",
+)
+
+def _aide_persona_system() -> str:
+    try:
+        from llm.prompts import AIDE_PERSONA_SYSTEM
+        return AIDE_PERSONA_SYSTEM
+    except Exception:
+        return "Bạn là AIDE — trợ lý pháp chế SHB. Trả lời thân thiện tiếng Việt."
+
+
+def _is_chitchat(text: str) -> bool:
+    """True nếu câu hỏi là chào hỏi, hỏi về AIDE, hoặc không liên quan pháp lý."""
+    low = text.lower().strip()
+    if any(t in low for t in _CHITCHAT_TRIGGERS):
+        return True
+    # Câu rất ngắn không có từ khóa pháp lý
+    if len(low) < 40 and not any(s in low for s in _LEGAL_SIGNALS):
+        return True
+    return False
+
 
 def _ensure_db() -> None:
     try:
@@ -193,6 +224,17 @@ def post_message(
         answer_text = result["answer"]
         citations = result.get("citations", [])
         extra = {k: v for k, v in result.items() if k not in ("answer", "citations")}
+    elif _is_chitchat(text) and not attachment_ctx:
+        # Chitchat / hỏi về AIDE → trả lời bằng persona, không qua RAG
+        from llm.client import get_client
+        try:
+            answer_text = get_client().complete(_aide_persona_system(), text)
+        except Exception:
+            answer_text = ("Xin chào! Tôi là AIDE — trợ lý pháp chế của ngân hàng SHB. "
+                           "Tôi có thể giúp bạn tra cứu quy định pháp lý và kiểm tra tuân thủ tài liệu. "
+                           "Bạn muốn hỏi về quy định nào?")
+        citations = []
+        extra = {"status": "CHITCHAT"}
     else:
         from query.service import answer_query  # Ask Regulations = existing RAG
 
