@@ -225,16 +225,15 @@ def handle_upload(file_bytes: bytes, filename: str, doc_type: str, uploaded_by: 
         row.processing_status = ProcessingStatus.PARSED.value
 
         # Luôn tạo PARSING_REVIEW để cán bộ xác nhận kết quả bóc tách.
-        if not change_results:
-            review_inbox.create_task(
-                session,
-                ReviewTaskType.PARSING_REVIEW,
-                document_id=row.document_id,
-                source_ref=row.document_number or row.filename,
-                extracted={"provision_count": provision_count,
-                           "note": "" if provision_count else "LLM/parse không tìm thấy điều khoản — kiểm tra lại file."},
-                confidence=0.8 if provision_count else 0.3,
-            )
+        review_inbox.create_task(
+            session,
+            ReviewTaskType.PARSING_REVIEW,
+            document_id=row.document_id,
+            source_ref=row.document_number or row.filename,
+            extracted={"provision_count": provision_count,
+                       "note": "" if provision_count else "LLM không trích được điều khoản — kiểm tra API key hoặc nội dung file."},
+            confidence=0.8 if provision_count else 0.3,
+        )
 
         return UploadResponse(
             document_id=row.document_id,
