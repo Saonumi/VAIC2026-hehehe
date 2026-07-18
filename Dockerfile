@@ -16,4 +16,5 @@ COPY . .
 
 EXPOSE 8000 8501
 
-CMD ["uvicorn", "backend.app.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Shell form so ${PORT} (injected by Railway) expands; falls back to 8000 locally.
+CMD uvicorn backend.app.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
