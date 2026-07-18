@@ -305,6 +305,13 @@ export const api = {
       "POST", `/conversations/${id}/attachments`, { filename, text }),
   deleteConversation: (id: string) => req<unknown>("DELETE", `/conversations/${id}`),
 
+  // Trích xuất text từ file (PDF/DOCX/TXT) qua backend PyMuPDF — dùng trước khi review.
+  extractText: (file: File) => {
+    const form = new FormData()
+    form.append("file", file)
+    return reqForm<{ filename: string; text: string }>("/extract-text", form)
+  },
+
   // RAG — review runs (Nhận xét tài liệu)
   createReviewRun: (filename: string, text: string, assessment_date?: string, conversation_id?: string) =>
     req<ReviewRunResult>("POST", "/review-runs", { filename, text, assessment_date, conversation_id }),

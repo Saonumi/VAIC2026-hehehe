@@ -377,9 +377,19 @@ function ReviewIntake({ onSingle, onBatch }: {
   const [err, setErr] = React.useState<string | null>(null)
 
   const addFiles = async (list: FileList) => {
-    const added = await Promise.all(
-      Array.from(list).slice(0, 5).map(async (f) => ({ filename: f.name, text: await f.text() })))
-    setFiles((cur) => [...cur, ...added].slice(0, 5))
+    setErr(null)
+    const out: ReviewFile[] = []
+    for (const f of Array.from(list).slice(0, 5)) {
+      try {
+        // .txt/.md đọc thẳng; PDF/DOCX nhờ backend trích xuất (PyMuPDF /extract-text).
+        const isText = /\.(txt|md|csv|json|text)$/i.test(f.name)
+        const text = isText ? await f.text() : (await api.extractText(f)).text
+        out.push({ filename: f.name, text })
+      } catch (e) {
+        setErr(`${f.name}: ${e instanceof Error ? e.message : String(e)}`)
+      }
+    }
+    setFiles((cur) => [...cur, ...out].slice(0, 5))
   }
 
   const start = async () => {

@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 
 from api.auth import CurrentUser, require_authenticated
@@ -20,6 +20,56 @@ from backend.app.review import explainer
 from backend.app.review import service
 
 router = APIRouter(tags=["review-runs"])
+
+
+@router.post("/extract-text")
+async def extract_text(
+    file: UploadFile = File(...), user: CurrentUser = Depends(require_authenticated)
+) -> dict:
+    """Trích xuất text từ PDF/DOCX/TXT cho mode Nhận xét tài liệu (PyMuPDF cho PDF).
+
+    File chỉ dùng để lấy text (REVIEW_TARGET) — KHÔNG lưu vào kho pháp lý, không
+    index. Trả 422 rõ ràng nếu là PDF scan/ảnh (không có lớp text) cần OCR.
+    """
+    import os
+    import tempfile
+
+    data = await file.read()
+    name = (file.filename or "").lower()
+    text = ""
+    if name.endswith(".pdf") or data[:5] == b"%PDF-":
+        suffix, fn = ".pdf", "extract_text_blocks_from_pdf"
+    elif name.endswith(".docx"):
+        suffix, fn = ".docx", "extract_text_blocks_from_docx"
+    else:
+        suffix = None
+
+    if suffix:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(data)
+            path = tmp.name
+        try:
+            import backend.app.ingestion.extractors.pdf as ext
+            blocks = getattr(ext, fn)(path)
+            text = "\n".join(b.get("text", "") for b in blocks)
+        except Exception as e:  # PyMuPDF thiếu / PDF scan / file hỏng
+            raise HTTPException(status_code=422, detail={"error": {
+                "code": "EXTRACT_FAILED",
+                "message": f"Không đọc được nội dung ({e}). Có thể là PDF scan (ảnh) cần OCR."}})
+        finally:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+    else:
+        text = data.decode("utf-8", errors="replace")
+
+    text = text.replace("\x00", "").strip()
+    if not text:
+        raise HTTPException(status_code=422, detail={"error": {
+            "code": "NEEDS_TEXT_EXTRACTION",
+            "message": "Không trích xuất được text (PDF scan/ảnh cần OCR)."}})
+    return {"filename": file.filename, "text": text}
 
 
 class CreateReviewRunRequest(BaseModel):
