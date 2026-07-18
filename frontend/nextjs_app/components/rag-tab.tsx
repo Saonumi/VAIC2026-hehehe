@@ -551,24 +551,48 @@ function ReviewDocPanel({ report, onNew, onRerun, rerunning }: {
 }
 
 function FindingsOverview({ report }: { report: ReviewRunReport }) {
-  // summary keys = tên status (lowercase) → nhãn tiếng Việt
-  const entries = Object.entries(report.summary).filter(([, n]) => n > 0)
+  const summary: Record<string, number> = report.summary ?? {}
+  // total_claims là TỔNG, không phải một trạng thái → tách ra, đừng hiện thành pill.
+  const total = summary.total_claims ?? report.assessments.length
+  const entries = Object.entries(summary).filter(([k, n]) => k !== "total_claims" && n > 0)
+  const attention = entries
+    .filter(([k]) => k.toUpperCase() !== "COMPLIANT")
+    .reduce((sum, [, n]) => sum + n, 0)
+  const allOk = total > 0 && attention === 0
+
   return (
-    <div className="border border-border bg-card p-4">
-      <div className="text-sm font-semibold mb-2">Tổng quan</div>
-      {entries.length === 0 ? (
-        <p className="text-xs text-muted-foreground">Không có mục nào cần lưu ý.</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {entries.map(([k, n]) => {
-            const meta = STATUS[k.toUpperCase()]
-            return (
-              <span key={k} className={`text-xs px-2 py-1 border ${meta?.cls ?? "border-border text-muted-foreground"}`}>
-                {n} {(meta?.label ?? k).toLowerCase()}
-              </span>
-            )
-          })}
+    <div className="border border-border bg-card rounded-lg p-4">
+      <div className="flex items-baseline justify-between gap-2 mb-3">
+        <div className="text-sm font-semibold">Tổng quan</div>
+        <div className="text-xs text-muted-foreground">Đã kiểm tra {total} nội dung</div>
+      </div>
+
+      {total === 0 ? (
+        <p className="text-xs text-muted-foreground">Chưa trích xuất được nội dung nào để kiểm tra.</p>
+      ) : allOk ? (
+        <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+          Tất cả nội dung đều phù hợp với quy định hiện hành.
         </div>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground mb-2">
+            <span className="font-semibold text-foreground">{attention}</span> nội dung cần chú ý
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {entries.map(([k, n]) => {
+              const meta = STATUS[k.toUpperCase()]
+              return (
+                <span
+                  key={k}
+                  className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border ${meta?.cls ?? "border-border text-muted-foreground"}`}
+                >
+                  <span className="font-bold">{n}</span>
+                  {meta?.label ?? k}
+                </span>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
