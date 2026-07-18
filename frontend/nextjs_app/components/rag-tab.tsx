@@ -115,6 +115,7 @@ function AskMode() {
   const [queryDate, setQueryDate] = React.useState("")
   const [busy, setBusy] = React.useState(false)
   const scrollRef = React.useRef<HTMLDivElement>(null)
+  const taRef = React.useRef<HTMLTextAreaElement>(null)
 
   const refreshList = React.useCallback(() => {
     api.listConversations()
@@ -126,6 +127,16 @@ function AskMode() {
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [turns])
+
+  // Textarea tự giãn theo nội dung tới max-h-40 (160px) rồi cuộn; tự co lại khi
+  // text bị xóa sau khi gửi. ponytail: field-sizing:content sẽ thay được khi mọi
+  // trình duyệt hỗ trợ, giờ dùng JS cho chắc ăn lúc demo.
+  React.useEffect(() => {
+    const el = taRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+  }, [text])
 
   const open = async (id: string) => {
     setConvId(id)
@@ -221,8 +232,8 @@ function AskMode() {
                 <input type="file" accept=".txt,.md" className="hidden"
                   onChange={(e) => e.target.files?.[0] && attach(e.target.files[0])} />
               </label>
-              <textarea rows={1}
-                className="flex-1 resize-none bg-transparent outline-none text-sm leading-relaxed py-1.5 max-h-40 placeholder:text-muted-foreground/70"
+              <textarea ref={taRef} rows={1}
+                className="flex-1 resize-none bg-transparent outline-none text-sm leading-relaxed py-1.5 max-h-40 overflow-y-auto placeholder:text-muted-foreground/70"
                 placeholder="Nhập câu hỏi về quy định…"
                 value={text} onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() } }} />
@@ -867,6 +878,14 @@ function FollowUpChat({ placeholder, ask, onNewRun }: {
   const [log, setLog] = React.useState<{ q: string; a: string; locked?: boolean; action?: string }[]>([])
   const [q, setQ] = React.useState("")
   const [busy, setBusy] = React.useState(false)
+  const taRef = React.useRef<HTMLTextAreaElement>(null)
+
+  React.useEffect(() => {
+    const el = taRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`
+  }, [q])
 
   const send = async () => {
     if (!q.trim() || busy) return
@@ -905,10 +924,11 @@ function FollowUpChat({ placeholder, ask, onNewRun }: {
       )}
       <div className="p-3 pt-2">
         <PromptShell>
-          <input className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-muted-foreground/70"
+          <textarea ref={taRef} rows={1}
+                 className="flex-1 resize-none bg-transparent outline-none text-sm leading-relaxed py-1.5 max-h-40 overflow-y-auto placeholder:text-muted-foreground/70"
                  placeholder={placeholder} value={q}
                  onChange={(e) => setQ(e.target.value)}
-                 onKeyDown={(e) => { if (e.key === "Enter") send() }} />
+                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send() } }} />
           <Button size="icon" onClick={send} disabled={busy || !q.trim()}
                   className="size-9 rounded-full bg-orange-500 hover:bg-orange-600 text-white shrink-0 disabled:opacity-40"
                   aria-label="Gửi">
